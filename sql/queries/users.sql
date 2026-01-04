@@ -5,8 +5,5 @@ VALUES ($1, $2, $3, $4,
 )
 RETURNING *;
 
--- -- name: UpdateUser :one
--- UPDATE users
--- SET updated_at = $1, name = $2
--- WHERE id = $3
--- RETURNING *;
+-- name: GetUserByAPIKey :one
+SELECT * FROM users WHERE api_key = $1;

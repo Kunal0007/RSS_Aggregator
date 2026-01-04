@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// Create User handler
 func (t *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Body values
@@ -23,7 +24,7 @@ func (t *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&params)
 
 	if err != nil {
-		responseWithError(w, 400, fmt.Sprintf("Error parsing JSON:%v", err))
+		responseWithError(w, 400, fmt.Sprintf("Error parsing JSON: %v", err))
 		return
 	}
 
@@ -36,10 +37,15 @@ func (t *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		responseWithError(w, 400, fmt.Sprintf("Couldn't create a user:%v", err))
+		responseWithError(w, 400, fmt.Sprintf("Couldn't create a user: %v", err))
 		return
 	}
 
 	// passed created user
+	responseWithJSON(w, 201, databaseUserToUser(user))
+}
+
+// GetUser handler
+func (t *apiConfig) handlerGetUserByAPIKey(w http.ResponseWriter, r *http.Request, user database.User) {
 	responseWithJSON(w, 200, databaseUserToUser(user))
 }
