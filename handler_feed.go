@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Create User handler
+// Create Feed handler
 func (t *apiConfig) handlerCreateFeed(w http.ResponseWriter, r *http.Request, user database.User) {
 
 	// Body values
@@ -46,4 +46,17 @@ func (t *apiConfig) handlerCreateFeed(w http.ResponseWriter, r *http.Request, us
 
 	// passed created user
 	responseWithJSON(w, 201, databaseFeedToFeed(feed))
+}
+
+func (t *apiConfig) handlerGetFeeds(w http.ResponseWriter, r *http.Request) {
+	// get Feeds
+	feeds, err := t.DB.GetFeeds(r.Context())
+
+	if err != nil {
+		responseWithError(w, 400, fmt.Sprintf("Couldn't get feeds: %v", err))
+		return
+	}
+
+	// passed get feeds
+	responseWithJSON(w, 201, databaseFeedsToFeeds(feeds))
 }
