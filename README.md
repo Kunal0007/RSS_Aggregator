@@ -1,42 +1,77 @@
-# RSS_Aggregator
+# 📰 RSS Aggregator
 
-RSS_Aggregator is a small Go service that aggregates RSS/Atom feeds into a PostgreSQL database and exposes a simple REST API to manage users, feeds and feed follows and to read posts for a user.
+A lightweight Go service that aggregates **RSS/Atom feeds** into a **PostgreSQL** database and exposes a clean **REST API** to manage users, feeds, subscriptions, and posts.
 
-Key features
-- Create users (server returns an API key)
-- Register feeds and follow feeds
-- Background scraper that periodically fetches feeds and stores posts
-- REST HTTP API with lightweight JSON responses
+---
 
-Prerequisites
-- Go 1.20+ (module-aware)
-- PostgreSQL database
-- (Optional) sqlc if you want to regenerate the typed queries
+## ✨ Key Features
 
-Environment
-The service reads configuration from environment variables (the project also loads a local .env if present):
+* 👤 Create users (server generates an API key)
+* 📡 Register RSS/Atom feeds and follow/unfollow them
+* 🔄 Background scraper that periodically fetches feeds and stores posts
+* 🚀 Simple RESTful HTTP API with lightweight JSON responses
 
-- PORT - TCP port the HTTP server listens on (required)
-- DB_URL - PostgreSQL connection string (required). Example: postgres://user:password@localhost:5432/rss_aggregator?sslmode=disable
+---
 
-Build and run
+## 🧰 Prerequisites
 
-1. Build:
+* **Go** 1.20+ (module-aware)
+* **PostgreSQL** database
+* *(Optional)* **sqlc** — required only if you want to regenerate typed queries
 
-   go build -o rss_aggregator
+---
 
-2. Run (example):
+## ⚙️ Configuration
 
-   PORT=8080 DB_URL="postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable" ./rss_aggregator
+The service reads configuration from environment variables. A local `.env` file is also loaded automatically if present.
 
-The server will start and the background scraper will run every 1 minute (configured in code) using 10 goroutines.
+| Variable | Description                                        |
+| -------- | -------------------------------------------------- |
+| `PORT`   | TCP port the HTTP server listens on (**required**) |
+| `DB_URL` | PostgreSQL connection string (**required**)        |
 
-Database
+**Example:**
 
-This project uses sqlc-generated typed queries located under internal/database. The repository contains a sqlc.yaml file. If you modify SQL files, regenerate the queries with sqlc (see sqlc docs).
+```
+postgres://user:password@localhost:5432/rss_aggregator?sslmode=disable
+```
 
-A minimal SQL schema matching the generated models (you may already have migrations in your environment or CI):
+---
 
+## 🏗️ Build & Run
+
+### 1️⃣ Build
+
+```bash
+go build -o rss_aggregator
+```
+
+### 2️⃣ Run
+
+```bash
+PORT=8080 \
+DB_URL="postgres://user:pass@localhost:5432/rss_aggregator?sslmode=disable" \
+./rss_aggregator
+```
+
+* The HTTP server starts immediately
+* The background scraper runs **every 1 minute** using **10 goroutines** (configurable in code)
+
+---
+
+## 🗄️ Database
+
+This project uses **sqlc-generated typed queries**, located under:
+
+```
+internal/database
+```
+
+If you modify SQL files, regenerate queries using **sqlc** (see sqlc documentation).
+
+### Minimal SQL Schema
+
+```sql
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE users (
@@ -75,79 +110,120 @@ CREATE TABLE posts (
   url TEXT NOT NULL UNIQUE,
   feed_id UUID REFERENCES feeds(id) ON DELETE CASCADE
 );
+```
 
-API
+---
 
-Base path: /v1
+## 🔐 API Authentication
 
-Authentication: several endpoints require an API key header in this format:
+Some endpoints require an API key passed via the `Authorization` header:
 
-  Authorization: ApiKey {apiKey}
+```
+Authorization: ApiKey <your_api_key>
+```
 
-Endpoints
-- GET  /v1/healthz
-  - Health/readiness check
-- GET  /v1/error
-  - Returns a sample 400 error response
-- POST /v1/users
-  - Create a new user. Body: {"name":"Your Name"}. Server returns user object with api_key.
-- GET  /v1/users (requires auth)
-  - Get the authenticated user details
-- GET  /v1/posts (requires auth)
-  - Get latest posts for the authenticated user (limit 10)
-- POST /v1/feeds (requires auth)
-  - Create a feed for the authenticated user. Body: {"name":"Feed name", "url":"https://example.com/rss"}
-- GET  /v1/feeds
-  - List all feeds
-- POST /v1/feed_follows (requires auth)
-  - Follow a feed as the authenticated user. Body: {"feed_id":"<feed-uuid>"}
-- GET  /v1/feed_follows (requires auth)
-  - List feed follows for the authenticated user
-- DELETE /v1/feed_follows/{feedFollowID} (requires auth)
-  - Unfollow a feed by feed follow ID
+---
 
-Examples
+## 🌐 API Reference
 
-Create a user:
+**Base Path:** `/v1`
 
-curl -s -X POST \
+### Health & Debug
+
+| Method | Endpoint   | Description               |
+| ------ | ---------- | ------------------------- |
+| GET    | `/healthz` | Health/readiness check    |
+| GET    | `/error`   | Sample 400 error response |
+
+### Users
+
+| Method | Endpoint | Auth | Description            |
+| ------ | -------- | ---- | ---------------------- |
+| POST   | `/users` | ❌    | Create a new user      |
+| GET    | `/users` | ✅    | Get authenticated user |
+
+### Feeds
+
+| Method | Endpoint | Auth | Description    |
+| ------ | -------- | ---- | -------------- |
+| POST   | `/feeds` | ✅    | Create a feed  |
+| GET    | `/feeds` | ❌    | List all feeds |
+
+### Feed Follows
+
+| Method | Endpoint             | Auth | Description         |
+| ------ | -------------------- | ---- | ------------------- |
+| POST   | `/feed_follows`      | ✅    | Follow a feed       |
+| GET    | `/feed_follows`      | ✅    | List followed feeds |
+| DELETE | `/feed_follows/{id}` | ✅    | Unfollow a feed     |
+
+### Posts
+
+| Method | Endpoint | Auth | Description                 |
+| ------ | -------- | ---- | --------------------------- |
+| GET    | `/posts` | ✅    | Get latest posts (limit 10) |
+
+---
+
+## 📌 API Usage Examples
+
+### Create a User
+
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"name":"Alice"}' \
-  "http://localhost:8080/v1/users"
+  http://localhost:8080/v1/users
+```
 
-Create a feed (authenticated):
+### Create a Feed (Authenticated)
 
-curl -s -X POST \
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: ApiKey <your_api_key>" \
   -d '{"name":"Golang Blog","url":"https://blog.golang.org/feed.atom"}' \
-  "http://localhost:8080/v1/feeds"
+  http://localhost:8080/v1/feeds
+```
 
-Follow a feed (authenticated):
+### Follow a Feed
 
-curl -s -X POST \
+```bash
+curl -X POST \
   -H "Content-Type: application/json" \
   -H "Authorization: ApiKey <your_api_key>" \
   -d '{"feed_id":"<feed-uuid>"}' \
-  "http://localhost:8080/v1/feed_follows"
+  http://localhost:8080/v1/feed_follows
+```
 
-Get posts for a user (authenticated):
+### Get User Posts
 
-curl -s -X GET \
+```bash
+curl -X GET \
   -H "Authorization: ApiKey <your_api_key>" \
-  "http://localhost:8080/v1/posts"
+  http://localhost:8080/v1/posts
+```
 
-Notes & development
+---
 
-- The scraper runs in the background (startScraping) and fetches feeds concurrently. The interval and concurrency are currently hardcoded (10 goroutines, every 1 minute). You can change these values in main.go.
-- CORS is enabled for all origins. Adjust cors options in main.go for production.
-- Error and JSON helpers are in json.go.
-- Authorization header parsing is implemented in internal/auth/auth.go and expects the header value to begin with "ApiKey ".
+## 🛠️ Development Notes
 
-Contributing
+* Background scraper is started via `startScraping` and fetches feeds concurrently
+* Scraper settings (interval & concurrency) are currently **hardcoded** in `main.go`
+* CORS is enabled for **all origins** (adjust in `main.go` for production)
+* JSON helpers and error utilities live in `json.go`
+* Authorization logic is implemented in `internal/auth/auth.go`
 
-PRs and issues are welcome. For contributions, please open an issue describing the change or improvement and submit a PR from a topic branch.
+---
 
-License
+## 🤝 Contributing
 
-MIT
+Contributions are welcome!
+
+1. Open an issue describing the bug or enhancement
+2. Create a feature/topic branch
+3. Submit a pull request
+
+---
+
+⭐ If you find this project useful, consider giving it a star!
